@@ -1,0 +1,141 @@
+@if (cuestionarioService.modalApiLogsAbierto()) {
+  <div class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-[#fcf9f4] border border-[#e6dac8] rounded-2xl shadow-modal max-w-3xl w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Encabezado del Modal -->
+      <div class="flex items-center justify-between border-b border-[#f0e7db] pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-lg bg-[#a67c42] text-white flex items-center justify-center text-sm shadow-xs font-bold">
+            📡
+          </span>
+          <div>
+            <h3 class="text-base sm:text-lg font-extrabold text-[#231f20]">
+              Historial de Llamadas a la API REST
+            </h3>
+            <p class="text-[11px] text-[#7a6e65]">
+              Auditoría y trazabilidad de endpoints del microservicio de Cuestionarios
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          @if (cuestionarioService.apiLogs().length > 0) {
+            <button
+              type="button"
+              (click)="limpiar()"
+              class="text-[11px] font-bold text-[#e53935] hover:bg-[#fbede8] px-2.5 py-1 rounded border border-[#f5c6cb] transition-colors cursor-pointer">
+              Limpiar
+            </button>
+          }
+          <button
+            type="button"
+            (click)="cerrar()"
+            class="text-[#7a6e65] hover:text-[#231f20] w-7 h-7 rounded-full bg-[#f5ede1] border border-[#e6dac8] flex items-center justify-center text-xs font-bold cursor-pointer transition-colors">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de Llamadas Realizadas -->
+      @if (cuestionarioService.apiLogs().length === 0) {
+        <div class="text-center py-10 bg-[#faf7f2] rounded-xl border border-dashed border-[#e6dac8] space-y-1">
+          <p class="text-xs font-semibold text-[#7a6e65]">No hay llamadas registradas en esta sesión.</p>
+          <p class="text-[11px] text-[#cbbea9]">Interactúa con el creador o resuelve un cuestionario para inspeccionar los paquetes HTTP.</p>
+        </div>
+      } @else {
+        <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
+          @for (log of cuestionarioService.apiLogs(); track log.id) {
+            <div
+              class="border rounded-xl transition-all overflow-hidden text-xs shadow-2xs"
+              [class.border-[#cc5a36]]="logSeleccionado()?.id === log.id"
+              [class.border-[#e6dac8]]="logSeleccionado()?.id !== log.id"
+              [class.bg-[#ffffff]]="logSeleccionado()?.id !== log.id"
+              [class.bg-[#fcf9f4]]="logSeleccionado()?.id === log.id">
+              
+              <!-- Fila Principal del Log -->
+              <div
+                (click)="seleccionarLog(log)"
+                class="p-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-[#f5ede1]/60 transition-colors">
+                
+                <div class="flex items-center gap-2.5 truncate">
+                  <!-- Método HTTP -->
+                  <span
+                    class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shrink-0"
+                    [class.bg-[#eef7ee]]="log.metodo === 'GET'"
+                    [class.text-[#2e7d32]]="log.metodo === 'GET'"
+                    [class.border-[#c8e6c9]]="log.metodo === 'GET'"
+                    [class.bg-[#fbede8]]="log.metodo === 'POST'"
+                    [class.text-[#cc5a36]]="log.metodo === 'POST'"
+                    [class.border-[#f5c6cb]]="log.metodo === 'POST'"
+                    [class.bg-[#f5efe6]]="log.metodo === 'DELETE'"
+                    [class.text-[#a67c42]]="log.metodo === 'DELETE'">
+                    {{ log.metodo }}
+                  </span>
+
+                  <!-- Endpoint URL -->
+                  <span class="font-mono font-bold text-[#231f20] truncate">
+                    {{ log.url }}
+                  </span>
+
+                  <!-- Origen -->
+                  <span
+                    class="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase shrink-0"
+                    [class.bg-[#eef7ee]]="log.origen === 'SPRING_BOOT'"
+                    [class.text-[#2e7d32]]="log.origen === 'SPRING_BOOT'"
+                    [class.bg-[#f5efe6]]="log.origen === 'MOCK_AUTONOMO'"
+                    [class.text-[#a67c42]]="log.origen === 'MOCK_AUTONOMO'">
+                    {{ log.origen === 'SPRING_BOOT' ? '🟢 Backend' : '🟡 Mock Store' }}
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-3 shrink-0 text-[11px] text-[#7a6e65]">
+                  <span class="font-semibold text-[#2e7d32]">{{ log.status }} {{ log.statusText }}</span>
+                  <span>{{ log.duracionMs }}ms</span>
+                  <span class="text-[#cbbea9]">{{ log.timestamp }}</span>
+                  <span class="text-[10px]">{{ logSeleccionado()?.id === log.id ? '▲' : '▼' }}</span>
+                </div>
+
+              </div>
+
+              <!-- Detalle Expandido: Payload y Response -->
+              @if (logSeleccionado()?.id === log.id) {
+                <div class="border-t border-[#e6dac8] bg-[#faf7f2] p-3 space-y-3">
+                  
+                  @if (log.payload) {
+                    <div>
+                      <span class="font-bold text-[10px] text-[#a67c42] uppercase tracking-wider block mb-1">
+                        Request Body (Payload JSON):
+                      </span>
+                      <pre class="bg-[#231f20] text-[#e6dac8] p-3 rounded-lg text-[10px] font-mono overflow-x-auto max-h-40">{{ formatJson(log.payload) }}</pre>
+                    </div>
+                  }
+
+                  @if (log.response) {
+                    <div>
+                      <span class="font-bold text-[10px] text-[#2e7d32] uppercase tracking-wider block mb-1">
+                        Response Body (JSON Retornado):
+                      </span>
+                      <pre class="bg-[#231f20] text-[#a7f3d0] p-3 rounded-lg text-[10px] font-mono overflow-x-auto max-h-48">{{ formatJson(log.response) }}</pre>
+                    </div>
+                  }
+
+                </div>
+              }
+
+            </div>
+          }
+        </div>
+      }
+
+      <div class="flex justify-end pt-2 border-t border-[#f0e7db]">
+        <button
+          type="button"
+          (click)="cerrar()"
+          class="btn-terracotta py-2 px-5 text-xs font-bold cursor-pointer">
+          Cerrar Inspector
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

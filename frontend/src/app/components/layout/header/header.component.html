@@ -1,0 +1,113 @@
+<!-- Barra Superior & Breadcrumb -->
+<header class="w-full bg-[#fcf9f4] border-b border-[#e6dac8] shadow-sm sticky top-0 z-40">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Fila 1: Breadcrumb y Estado de Conexión -->
+    <div class="py-2.5 border-b border-[#f0e7db] flex flex-wrap items-center justify-between text-xs text-[#7a6e65]">
+      <nav class="flex items-center space-x-2">
+        <span class="hover:text-[#a67c42] cursor-pointer transition-colors">Mi curso</span>
+        <span class="text-[#cbbea9]">/</span>
+        <span class="hover:text-[#a67c42] cursor-pointer transition-colors">Introducción a la programación</span>
+        <span class="text-[#cbbea9]">/</span>
+        <span class="font-semibold text-[#a67c42]">Desafíos Teóricos</span>
+      </nav>
+
+      <div class="flex items-center space-x-2 mt-1 sm:mt-0">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#f5ede1] text-[#7a6e65] border border-[#e6dac8]">
+          <span class="w-2 h-2 rounded-full bg-[#2e7d32] animate-pulse"></span>
+          MVP Microservicio Autónomo
+        </span>
+        
+        <!-- Botón Historial de Llamadas a la API -->
+        <button
+          type="button"
+          (click)="cuestionarioService.abrirModalLogs()"
+          class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#ffffff] hover:bg-[#f5efe6] text-[#a67c42] hover:text-[#9c6a38] border border-[#e6dac8] shadow-2xs transition-all cursor-pointer">
+          <span>📡</span>
+          <span>Historial API ({{ cuestionarioService.apiLogs().length }})</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Fila 2: Brand, Role Toggle y HUD Gamificado -->
+    <div class="py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <!-- Brand & Título -->
+      <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-lg bg-[#cc5a36] text-white flex items-center justify-center font-black text-lg shadow-sm border border-[#b84c2a]">
+            ⚔️
+          </div>
+          <div>
+            <h1 class="text-base font-extrabold text-[#231f20] tracking-tight leading-tight">
+              E-Learning Arena
+            </h1>
+            <p class="text-[11px] text-[#7a6e65] font-medium uppercase tracking-wider">
+              Desafíos Teóricos · Módulo RPG
+            </p>
+          </div>
+        </div>
+
+        <!-- Role Toggle (Moodle Style) -->
+        <div class="inline-flex p-1 bg-[#f5ede1] border border-[#e6dac8] rounded-xl shadow-inner text-xs font-semibold">
+          <button
+            type="button"
+            (click)="cambiarRol('DOCENTE')"
+            [class.bg-[#cc5a36]]="gamification.rolActual() === 'DOCENTE'"
+            [class.text-white]="gamification.rolActual() === 'DOCENTE'"
+            [class.shadow-sm]="gamification.rolActual() === 'DOCENTE'"
+            [class.text-[#7a6e65]]="gamification.rolActual() !== 'DOCENTE'"
+            [class.hover:text-[#231f20]]="gamification.rolActual() !== 'DOCENTE'"
+            class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>👨‍🏫</span>
+            <span>Modo Docente</span>
+          </button>
+          
+          <button
+            type="button"
+            (click)="cambiarRol('ALUMNO')"
+            [class.bg-[#cc5a36]]="gamification.rolActual() === 'ALUMNO'"
+            [class.text-white]="gamification.rolActual() === 'ALUMNO'"
+            [class.shadow-sm]="gamification.rolActual() === 'ALUMNO'"
+            [class.text-[#7a6e65]]="gamification.rolActual() !== 'ALUMNO'"
+            [class.hover:text-[#231f20]]="gamification.rolActual() !== 'ALUMNO'"
+            class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>🎓</span>
+            <span>Modo Alumno</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- HUD Gamificado -->
+      <div class="flex items-center flex-wrap gap-3 sm:gap-4 w-full md:w-auto justify-end">
+        
+        <!-- Monedas -->
+        <div class="flex items-center gap-1.5 bg-[#f5ede1] border border-[#e6dac8] px-3 py-1.5 rounded-lg shadow-sm">
+          <span class="text-base" role="img" aria-label="Monedas">🪙</span>
+          <span class="text-xs font-bold text-[#a67c42] uppercase tracking-wide">
+            {{ gamification.monedas() }} / {{ gamification.monedasTotales() }}
+          </span>
+          <span class="text-[10px] font-semibold text-[#7a6e65] hidden sm:inline">MONEDAS</span>
+        </div>
+
+
+        <!-- Progreso de Desafíos -->
+        <div class="flex flex-col justify-center bg-[#f5ede1] border border-[#e6dac8] px-3 py-1 rounded-lg shadow-sm min-w-[140px]">
+          <div class="flex items-center justify-between text-[10px] font-bold text-[#7a6e65] mb-1">
+            <span class="text-[#231f20]">PROGRESO</span>
+            <span class="text-[#2e7d32]">{{ gamification.desafios() }} / {{ gamification.desafiosTotales() }}</span>
+          </div>
+          <div class="w-full bg-[#e6dac8] rounded-full h-1.5 overflow-hidden">
+            <div
+              class="bg-gradient-to-r from-[#2e7d32] to-[#a67c42] h-1.5 rounded-full transition-all duration-500"
+              [style.width.%]="gamification.porcentajeDesafios()">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</header>

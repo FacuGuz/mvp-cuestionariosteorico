@@ -1,0 +1,59 @@
+<div class="min-h-screen bg-[#f8f5ee] flex flex-col text-[#231f20] selection:bg-[#fbede8] selection:text-[#cc5a36]">
+  
+  <!-- Header Principal con Breadcrumbs y HUD Gamificado -->
+  <app-header></app-header>
+
+  <!-- Contenido de Vistas según el Rol Activo -->
+  <main class="flex-1 pb-16">
+    @if (gamification.rolActual() === 'DOCENTE') {
+      <app-cuestionario-creator></app-cuestionario-creator>
+    } @else {
+      <app-cuestionario-solver></app-cuestionario-solver>
+    }
+  </main>
+
+  <!-- Sistema de Toasts Notificaciones Flotantes -->
+  <div class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 max-w-sm w-full pointer-events-none px-4">
+    @for (t of gamification.activeToasts(); track t.id) {
+      <div
+        class="pointer-events-auto p-4 rounded-xl shadow-lg border text-xs font-bold flex items-center justify-between gap-3 transition-all"
+        [class.bg-[#eef7ee]]="t.tipo === 'success'"
+        [class.text-[#2e7d32]]="t.tipo === 'success'"
+        [class.border-[#c8e6c9]]="t.tipo === 'success'"
+        [class.bg-[#fbede8]]="t.tipo === 'error'"
+        [class.text-[#e53935]]="t.tipo === 'error'"
+        [class.border-[#f5c6cb]]="t.tipo === 'error'"
+        [class.bg-[#f5efe6]]="t.tipo === 'warning'"
+        [class.text-[#a67c42]]="t.tipo === 'warning'"
+        [class.border-[#e6dac8]]="t.tipo === 'warning'"
+        [class.bg-[#fcf9f4]]="t.tipo === 'info'"
+        [class.text-[#231f20]]="t.tipo === 'info'"
+        [class.border-[#e6dac8]]="t.tipo === 'info'">
+        <span>{{ t.mensaje }}</span>
+        <button
+          (click)="gamification.removerToast(t.id)"
+          class="opacity-60 hover:opacity-100 font-black text-sm cursor-pointer p-1">
+          ✕
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Modal Global de Historial de Llamados a la API -->
+  <app-api-logs-modal></app-api-logs-modal>
+
+  <!-- Pie de Página Pergamino Cálido -->
+  <footer class="border-t border-[#e6dac8] bg-[#fcf9f4] py-6 text-xs text-[#7a6e65]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-[#a67c42]">TPI · Microservicio de Cuestionarios Teóricos</span>
+        <span class="text-[#cbbea9]">·</span>
+        <span>MVP Autónomo para Demostración</span>
+      </div>
+      <p class="text-[11px]">
+        Inspirado en la temática Desierto / Aventura RPG con Angular y Tailwind CSS
+      </p>
+    </div>
+  </footer>
+
+</div>

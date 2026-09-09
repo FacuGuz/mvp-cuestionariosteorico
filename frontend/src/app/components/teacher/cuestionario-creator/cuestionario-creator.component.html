@@ -1,0 +1,752 @@
+<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">
+  
+  <!-- Encabezado y Pestañas de la Vista Docente -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e6dac8] pb-4">
+    <div>
+      <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-md bg-[#f5efe6] text-[#a67c42] text-xs font-bold uppercase tracking-wider border border-[#e6dac8] mb-1">
+        <span>👨‍🏫</span>
+        <span>PANEL DOCENTE · GESTIÓN DE EVALUACIONES</span>
+      </div>
+      <h2 class="text-xl sm:text-2xl font-extrabold text-[#231f20]">
+        Módulo de Cuestionarios Teóricos
+      </h2>
+    </div>
+
+    <!-- Pestañas de Navegación Docente -->
+    <div class="inline-flex p-1 bg-[#f5ede1] border border-[#e6dac8] rounded-xl shadow-2xs text-xs font-bold">
+      <button
+        type="button"
+        (click)="tabActiva.set('CREADOR')"
+        [class.bg-[#cc5a36]]="tabActiva() === 'CREADOR'"
+        [class.text-white]="tabActiva() === 'CREADOR'"
+        [class.shadow-sm]="tabActiva() === 'CREADOR'"
+        [class.text-[#7a6e65]]="tabActiva() !== 'CREADOR'"
+        class="px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer">
+        <span>➕</span>
+        <span>Diseñar Cuestionario</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="tabActiva.set('LISTA'); cargarCuestionariosBackend()"
+        [class.bg-[#cc5a36]]="tabActiva() === 'LISTA'"
+        [class.text-white]="tabActiva() === 'LISTA'"
+        [class.shadow-sm]="tabActiva() === 'LISTA'"
+        [class.text-[#7a6e65]]="tabActiva() !== 'LISTA'"
+        class="px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer">
+        <span>📚</span>
+        <span>Cuestionarios en el Sistema ({{ cuestionariosBackend().length }})</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- PESTAÑA 2: LISTADO DE CUESTIONARIOS CREADOS EN EL BACKEND / SISTEMA       -->
+  <!-- ========================================================================= -->
+  @if (tabActiva() === 'LISTA') {
+    <div class="space-y-4 animate-in fade-in duration-200">
+      <div class="flex items-center justify-between">
+        <p class="text-xs text-[#7a6e65]">
+          Listado de cuestionarios teóricos registrados en el microservicio, clasificados por curso y cohorte.
+        </p>
+        <button
+          type="button"
+          (click)="cargarCuestionariosBackend()"
+          class="text-xs font-bold text-[#a67c42] hover:underline flex items-center gap-1 cursor-pointer">
+          <span>🔄</span>
+          <span>Actualizar lista</span>
+        </button>
+      </div>
+
+      <!-- Barra de Filtros y Búsqueda -->
+      <div class="flex flex-col sm:flex-row gap-3 items-center justify-between bg-[#f5ede1] p-3 rounded-xl border border-[#e6dac8]">
+        <div class="relative w-full sm:w-80">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-[#a67c42] text-xs">🔍</span>
+          <input
+            type="text"
+            [ngModel]="terminoBusqueda()"
+            (ngModelChange)="terminoBusqueda.set($event)"
+            placeholder="Buscar por título, contenido o curso..."
+            class="w-full bg-[#ffffff] border border-[#e6dac8] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#231f20] placeholder-[#9e948c] focus:ring-2 focus:ring-[#cc5a36] focus:outline-none"
+          />
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <label class="text-[11px] font-bold text-[#7a6e65] uppercase shrink-0">Filtrar Curso:</label>
+          <select
+            [ngModel]="filtroCurso()"
+            (ngModelChange)="filtroCurso.set($event)"
+            class="bg-[#ffffff] border border-[#e6dac8] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#231f20] focus:ring-2 focus:ring-[#cc5a36] focus:outline-none max-w-[260px] truncate">
+            <option value="TODOS">Todos los Cursos</option>
+            @for (cName of cursosUnicos(); track cName) {
+              <option [value]="cName">{{ cName }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (isLoadingList()) {
+        <div class="text-center py-12 text-xs text-[#7a6e65] bg-[#faf7f2] rounded-xl border border-[#e6dac8]">
+          <span class="animate-spin text-base inline-block mr-2">⏳</span> Cargando cuestionarios...
+        </div>
+      } @else if (cuestionariosFiltrados().length === 0) {
+        <div class="text-center py-12 text-xs text-[#7a6e65] bg-[#faf7f2] rounded-xl border border-dashed border-[#e6dac8]">
+          No se encontraron cuestionarios que coincidan con los criterios de búsqueda.
+        </div>
+      } @else {
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          @for (c of cuestionariosFiltrados(); track c.id) {
+            <div class="card-parchment p-5 shadow-sm flex flex-col justify-between space-y-4 hover:border-[#cbbea9] transition-all">
+              
+              <div class="space-y-2.5">
+                <!-- Badges de Curso y Estado -->
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-md bg-[#f5efe6] text-[#a67c42] border border-[#e6dac8] truncate max-w-[280px]">
+                    <span>🏫</span>
+                    <span class="truncate">{{ c.cursoNombre }}</span>
+                  </span>
+
+                  <div class="flex items-center gap-1.5">
+                    @if (c.activo) {
+                      <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#eef7ee] text-[#2e7d32] border border-[#c8e6c9]">
+                        🟢 Activo
+                      </span>
+                    } @else {
+                      <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#fbede8] text-[#e53935] border border-[#f5c6cb]">
+                        🔴 Inactivo
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Título y Descripción -->
+                <h3 class="text-base font-bold text-[#231f20] leading-snug">
+                  {{ c.titulo }}
+                </h3>
+                <p class="text-xs text-[#7a6e65] line-clamp-2">
+                  {{ c.descripcion }}
+                </p>
+
+                <!-- Metadata Grid -->
+                <div class="grid grid-cols-3 gap-2 bg-[#f5ede1] p-2.5 rounded-lg border border-[#e6dac8] text-xs">
+                  <div>
+                    <span class="text-[9px] uppercase font-bold text-[#7a6e65] block">Preguntas</span>
+                    <span class="font-bold text-[#231f20]">{{ c.cantidadPreguntas }}</span>
+                  </div>
+                  <div>
+                    <span class="text-[9px] uppercase font-bold text-[#7a6e65] block">Puntaje</span>
+                    <span class="font-bold text-[#cc5a36]">{{ c.puntajeTotal }} pts</span>
+                  </div>
+                  <div>
+                    <span class="text-[9px] uppercase font-bold text-[#7a6e65] block">Reintentos</span>
+                    <span class="font-bold text-[#a67c42]">{{ c.intentosPermitidos || 3 }} permitidos</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Acciones de la Tarjeta (Activar/Desactivar, Editar Inmutable, Probar) -->
+              <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#f0e7db]">
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="toggleActivarDesactivar(c)"
+                    [class.text-[#a67c42]]="c.activo"
+                    [class.hover:text-[#cc5a36]]="c.activo"
+                    [class.text-[#2e7d32]]="!c.activo"
+                    class="text-xs font-bold px-2.5 py-1 rounded bg-[#ffffff] border border-[#e6dac8] hover:bg-[#f5ede1] cursor-pointer transition-colors"
+                    [title]="c.activo ? 'Desactivar cuestionario (baja lógica)' : 'Reactivar cuestionario'">
+                    {{ c.activo ? '⏸️ Desactivar' : '▶️ Reactivar' }}
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="cargarEnDisenador(c.id)"
+                    class="text-xs font-bold px-2.5 py-1 rounded bg-[#ffffff] border border-[#e6dac8] hover:bg-[#f5ede1] text-[#231f20] cursor-pointer transition-colors"
+                    title="Editar cuestionario (aplicará regla de inmutabilidad en backend)">
+                    ✏️ Editar
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  (click)="probarComoAlumno(c.id)"
+                  class="btn-terracotta py-1.5 px-3 text-xs font-bold flex items-center gap-1 cursor-pointer">
+                  <span>🎓 Probar como alumno</span>
+                  <span>→</span>
+                </button>
+              </div>
+
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- PESTAÑA 1: CREADOR FLUIDO Y COMPACTO DE CUESTIONARIOS                     -->
+  <!-- ========================================================================= -->
+  @if (tabActiva() === 'CREADOR') {
+    <div class="space-y-6 animate-in fade-in duration-200">
+      
+      <!-- Banner de Modo Edición Inmutable -->
+      @if (cuestionarioEditandoId()) {
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-[#fff8e7] border border-[#f0c36d] rounded-xl text-xs shadow-xs animate-in fade-in">
+          <div class="flex items-center gap-2 text-[#8a5d00]">
+            <span class="text-lg">✏️</span>
+            <div>
+              <div class="font-extrabold">Modo Edición Inmutable Activo</div>
+              <div class="text-[11px] font-medium text-[#a67c42]">
+                Cuestionario Original: <code class="font-mono bg-[#fcf9f4] px-1 py-0.5 rounded border border-[#e6dac8]">{{ cuestionarioEditandoId()?.substring(0, 8) }}...</code> · Al guardar, se creará una versión nueva activa y se desactivará la anterior.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="cancelarEdicion()"
+            class="px-3 py-1.5 rounded-lg bg-[#ffffff] border border-[#f0c36d] text-[#8a5d00] hover:bg-[#faebd7] font-bold text-xs cursor-pointer shadow-2xs transition-all shrink-0">
+            ✕ Cancelar Edición
+          </button>
+        </div>
+      }
+
+      <!-- Fila de Configuración General Compacta -->
+      <div class="card-parchment p-4 shadow-sm space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+          
+          <!-- Curso Correspondiente (Solicitado) -->
+          <div class="lg:col-span-4 space-y-1">
+            <label class="block text-[11px] font-bold text-[#a67c42] uppercase flex items-center gap-1">
+              <span>🏫</span> Curso Correspondiente *
+            </label>
+            <select
+              [(ngModel)]="cursoNombre"
+              class="w-full bg-[#ffffff] border-2 border-[#a67c42] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#231f20] focus:ring-2 focus:ring-[#cc5a36] focus:outline-none shadow-inner">
+              @for (curso of cursosDisponibles; track curso) {
+                <option [value]="curso">{{ curso }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Título del Cuestionario -->
+          <div class="lg:col-span-4 space-y-1">
+            <label class="block text-[11px] font-bold text-[#231f20] uppercase">Título del Cuestionario *</label>
+            <input
+              type="text"
+              [(ngModel)]="titulo"
+              placeholder="Nombre del cuestionario..."
+              class="w-full bg-[#ffffff] border border-[#e6dac8] rounded-lg px-2.5 py-1.5 text-xs text-[#231f20] focus:ring-2 focus:ring-[#cc5a36] focus:outline-none shadow-inner"
+            />
+          </div>
+
+          <!-- Tiempo (min) -->
+          <div class="lg:col-span-1 space-y-1">
+            <label class="block text-[11px] font-bold text-[#231f20] uppercase">Tiempo</label>
+            <input
+              type="number"
+              min="1"
+              max="180"
+              [(ngModel)]="duracionMinutos"
+              class="w-full bg-[#ffffff] border border-[#e6dac8] rounded-lg px-2 py-1.5 text-xs text-[#231f20] focus:ring-2 focus:ring-[#cc5a36] focus:outline-none shadow-inner text-center"
+            />
+          </div>
+
+          <!-- Dificultad -->
+          <div class="lg:col-span-1 space-y-1">
+            <label class="block text-[11px] font-bold text-[#231f20] uppercase">Nivel</label>
+            <select
+              [(ngModel)]="dificultad"
+              class="w-full bg-[#ffffff] border border-[#e6dac8] rounded-lg px-1.5 py-1.5 text-xs text-[#231f20] focus:ring-2 focus:ring-[#cc5a36] focus:outline-none shadow-inner">
+              <option value="Básica">Básica</option>
+              <option value="Intermedia">Intermedia</option>
+              <option value="Avanzada">Avanzada</option>
+            </select>
+          </div>
+
+          <!-- Reintentos Permitidos -->
+          <div class="lg:col-span-1 space-y-1">
+            <label class="block text-[11px] font-bold text-[#a67c42] uppercase text-center" title="Reintentos completos para el alumno">
+              Reintentos
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              [(ngModel)]="intentosPermitidos"
+              class="w-full bg-[#ffffff] border-2 border-[#a67c42] rounded-lg px-2 py-1.5 text-xs font-extrabold text-[#231f20] focus:outline-none text-center"
+            />
+          </div>
+
+          <!-- Obligatorio -->
+          <div class="lg:col-span-1 flex items-center pb-1.5 justify-center">
+            <label class="flex items-center text-xs font-bold text-[#231f20] cursor-pointer" title="Requisito de la unidad">
+              <input
+                type="checkbox"
+                [(ngModel)]="obligatorio"
+                class="w-3.5 h-3.5 text-[#cc5a36] rounded mr-1"
+              />
+              <span class="text-[11px]">Oblig.</span>
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- WORKSPACE 2 COLUMNAS (Creador + Lista) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- COLUMNA IZQUIERDA: CONSTRUCTOR RÁPIDO DE PREGUNTA (7 COLS) -->
+        <div class="lg:col-span-7 card-parchment p-5 space-y-4 shadow-sm">
+          
+          <!-- Selector de Tipo en Pills Rápidos -->
+          <div class="space-y-1">
+            <label class="block text-[11px] font-bold text-[#7a6e65] uppercase tracking-wider">
+              Tipo de Pregunta Autocorregible
+            </label>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              <button
+                type="button"
+                (click)="tipoSeleccionado = 'OPCION_MULTIPLE'"
+                [class.bg-[#cc5a36]]="tipoSeleccionado === 'OPCION_MULTIPLE'"
+                [class.text-white]="tipoSeleccionado === 'OPCION_MULTIPLE'"
+                [class.border-[#cc5a36]]="tipoSeleccionado === 'OPCION_MULTIPLE'"
+                [class.bg-[#ffffff]]="tipoSeleccionado !== 'OPCION_MULTIPLE'"
+                [class.text-[#231f20]]="tipoSeleccionado !== 'OPCION_MULTIPLE'"
+                class="p-2 rounded-lg border border-[#e6dac8] text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs">
+                <span>📝</span>
+                <span>Múltiple Opción</span>
+              </button>
+
+              <button
+                type="button"
+                (click)="tipoSeleccionado = 'VERDADERO_FALSO'"
+                [class.bg-[#cc5a36]]="tipoSeleccionado === 'VERDADERO_FALSO'"
+                [class.text-white]="tipoSeleccionado === 'VERDADERO_FALSO'"
+                [class.border-[#cc5a36]]="tipoSeleccionado === 'VERDADERO_FALSO'"
+                [class.bg-[#ffffff]]="tipoSeleccionado !== 'VERDADERO_FALSO'"
+                [class.text-[#231f20]]="tipoSeleccionado !== 'VERDADERO_FALSO'"
+                class="p-2 rounded-lg border border-[#e6dac8] text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs">
+                <span>⚖️</span>
+                <span>V / F</span>
+              </button>
+
+              <button
+                type="button"
+                (click)="tipoSeleccionado = 'ORDENAR'"
+                [class.bg-[#cc5a36]]="tipoSeleccionado === 'ORDENAR'"
+                [class.text-white]="tipoSeleccionado === 'ORDENAR'"
+                [class.border-[#cc5a36]]="tipoSeleccionado === 'ORDENAR'"
+                [class.bg-[#ffffff]]="tipoSeleccionado !== 'ORDENAR'"
+                [class.text-[#231f20]]="tipoSeleccionado !== 'ORDENAR'"
+                class="p-2 rounded-lg border border-[#e6dac8] text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs">
+                <span>🔢</span>
+                <span>Ordenar</span>
+              </button>
+
+              <button
+                type="button"
+                (click)="tipoSeleccionado = 'EMPAREJAR'"
+                [class.bg-[#cc5a36]]="tipoSeleccionado === 'EMPAREJAR'"
+                [class.text-white]="tipoSeleccionado === 'EMPAREJAR'"
+                [class.border-[#cc5a36]]="tipoSeleccionado === 'EMPAREJAR'"
+                [class.bg-[#ffffff]]="tipoSeleccionado !== 'EMPAREJAR'"
+                [class.text-[#231f20]]="tipoSeleccionado !== 'EMPAREJAR'"
+                class="p-2 rounded-lg border border-[#e6dac8] text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs">
+                <span>🔗</span>
+                <span>Emparejar</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Enunciado y Puntaje -->
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1">
+            <div class="sm:col-span-3 space-y-1">
+              <label class="block text-[11px] font-bold text-[#231f20] uppercase">
+                Enunciado de la Pregunta *
+              </label>
+              <textarea
+                rows="2"
+                [(ngModel)]="enunciadoPregunta"
+                placeholder="Escribe la consigna de la pregunta..."
+                class="w-full bg-[#ffffff] border border-[#e6dac8] rounded-lg px-3 py-2 text-xs text-[#231f20] focus:ring-2 focus:ring-[#cc5a36] focus:outline-none shadow-inner"
+              ></textarea>
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-[11px] font-bold text-[#231f20] uppercase">
+                Puntaje (pts)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0.1"
+                [(ngModel)]="puntajePregunta"
+                class="w-full bg-[#ffffff] border-2 border-[#cc5a36] rounded-lg px-3 py-1.5 text-xs font-extrabold text-[#231f20] focus:outline-none"
+              />
+              <div class="text-[10px] text-[#7a6e65] font-semibold pt-0.5">
+                Representa <strong class="text-[#a67c42]">~{{ porcentajePreguntaEnCuestionario }}%</strong> del total
+              </div>
+            </div>
+          </div>
+
+          <!-- Subformulario dinámico según tipo -->
+          @if (tipoSeleccionado === 'OPCION_MULTIPLE') {
+            <div class="bg-[#f5ede1] border border-[#e6dac8] rounded-xl p-3.5 space-y-3">
+              
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#e6dac8] pb-2">
+                <span class="text-xs font-extrabold text-[#a67c42] uppercase flex items-center gap-1.5">
+                  <span>🔘</span> Modalidad de Respuesta
+                </span>
+
+                <div class="inline-flex p-0.5 bg-[#ffffff] border border-[#e6dac8] rounded-lg text-xs font-bold shadow-2xs">
+                  <button
+                    type="button"
+                    (click)="esMultipleRespuesta = false; seleccionarUnicaCorrecta(opcionCorrectaUnica)"
+                    [class.bg-[#cc5a36]]="!esMultipleRespuesta"
+                    [class.text-white]="!esMultipleRespuesta"
+                    [class.text-[#7a6e65]]="esMultipleRespuesta"
+                    class="px-2.5 py-1 rounded-md transition-all cursor-pointer">
+                    1 Sola Correcta
+                  </button>
+                  <button
+                    type="button"
+                    (click)="esMultipleRespuesta = true; distribuirEquitativamente()"
+                    [class.bg-[#cc5a36]]="esMultipleRespuesta"
+                    [class.text-white]="esMultipleRespuesta"
+                    [class.text-[#7a6e65]]="!esMultipleRespuesta"
+                    class="px-2.5 py-1 rounded-md transition-all cursor-pointer">
+                    Múltiples Correctas (% Ponderado)
+                  </button>
+                </div>
+              </div>
+
+              @if (esMultipleRespuesta) {
+                <div class="flex flex-wrap items-center justify-between gap-2 bg-[#ffffff] p-2 rounded-lg border border-[#e6dac8] text-xs">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-bold text-[#7a6e65]">Suma:</span>
+                    <span
+                      class="font-black px-2 py-0.5 rounded text-[11px]"
+                      [class.bg-[#eef7ee]]="sumaPorcentajesOpciones === 100"
+                      [class.text-[#2e7d32]]="sumaPorcentajesOpciones === 100"
+                      [class.bg-[#fbede8]]="sumaPorcentajesOpciones !== 100"
+                      [class.text-[#e53935]]="sumaPorcentajesOpciones !== 100">
+                      {{ sumaPorcentajesOpciones }}% {{ sumaPorcentajesOpciones === 100 ? '✓ (100% exacto)' : '(debe sumar 100%)' }}
+                    </span>
+                  </div>
+
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      (click)="distribuirEquitativamente()"
+                      class="text-[10px] font-bold px-2 py-1 rounded bg-[#f5efe6] text-[#a67c42] hover:bg-[#ede3d5] border border-[#e6dac8] cursor-pointer">
+                      ⚖️ Distribuir 100%
+                    </button>
+                    <button
+                      type="button"
+                      (click)="ajustarRestante()"
+                      class="text-[10px] font-bold px-2 py-1 rounded bg-[#f5efe6] text-[#a67c42] hover:bg-[#ede3d5] border border-[#e6dac8] cursor-pointer">
+                      ⚡ Ajustar Restante
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <!-- Opciones -->
+              <div class="space-y-2">
+                @for (op of opcionesMultiples; track op.id; let i = $index) {
+                  <div class="flex items-center gap-2 bg-[#ffffff] p-2 rounded-lg border border-[#e6dac8] shadow-2xs">
+                    @if (!esMultipleRespuesta) {
+                      <input
+                        type="radio"
+                        name="correctaGroup"
+                        [value]="op.id"
+                        [checked]="opcionCorrectaUnica === op.id"
+                        (change)="seleccionarUnicaCorrecta(op.id)"
+                        class="w-4 h-4 text-[#cc5a36] focus:ring-[#cc5a36] cursor-pointer shrink-0"
+                      />
+                    } @else {
+                      <input
+                        type="checkbox"
+                        [checked]="op.esCorrecta"
+                        (change)="toggleOpcionMultipleCorrecta(op)"
+                        class="w-4 h-4 text-[#cc5a36] rounded focus:ring-[#cc5a36] cursor-pointer shrink-0"
+                      />
+                    }
+
+                    <span class="font-extrabold text-xs text-[#cc5a36] w-5 text-center shrink-0">{{ op.id }}.</span>
+                    <input
+                      type="text"
+                      [(ngModel)]="op.texto"
+                      class="flex-1 text-xs bg-transparent border-none focus:outline-none text-[#231f20]"
+                      placeholder="Texto de la alternativa..."
+                    />
+
+                    @if (esMultipleRespuesta && op.esCorrecta) {
+                      <div class="flex items-center gap-1 bg-[#f5ede1] border border-[#e6dac8] px-2 py-1 rounded-md shrink-0">
+                        <span class="text-[10px] font-bold text-[#7a6e65]">Valor:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="5"
+                          [(ngModel)]="op.porcentaje"
+                          class="w-12 bg-white text-center font-extrabold text-xs text-[#cc5a36] border border-[#e6dac8] rounded py-0.5 focus:outline-none"
+                        />
+                        <span class="text-xs font-bold text-[#a67c42]">%</span>
+                        <span class="text-[10px] text-[#7a6e65] hidden sm:inline ml-1 font-semibold">
+                          ({{ (puntajePregunta * ((op.porcentaje || 0) / 100)).toFixed(2) }} pts)
+                        </span>
+                      </div>
+                    }
+
+                    <button
+                      type="button"
+                      (click)="eliminarOpcion(i)"
+                      class="text-xs text-[#9e948c] hover:text-[#e53935] p-1 cursor-pointer">
+                      ✕
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <button
+                type="button"
+                (click)="agregarOpcion()"
+                class="text-xs font-bold text-[#cc5a36] hover:underline flex items-center gap-1 cursor-pointer">
+                <span>+ Añadir otra opción</span>
+              </button>
+            </div>
+          }
+
+          @if (tipoSeleccionado === 'VERDADERO_FALSO') {
+            <div class="bg-[#f5ede1] border border-[#e6dac8] rounded-xl p-3.5 space-y-2.5">
+              <span class="text-xs font-extrabold text-[#a67c42] uppercase">Solución Correcta Esperada:</span>
+              <div class="inline-flex gap-2">
+                <button
+                  type="button"
+                  (click)="solucionVF = true"
+                  [class.bg-[#2e7d32]]="solucionVF === true"
+                  [class.text-white]="solucionVF === true"
+                  [class.bg-[#ffffff]]="solucionVF !== true"
+                  [class.text-[#231f20]]="solucionVF !== true"
+                  class="px-3.5 py-1.5 rounded-lg border border-[#e6dac8] font-bold text-xs transition-all cursor-pointer">
+                  ✓ Verdadero ({{ puntajePregunta }} pts)
+                </button>
+                <button
+                  type="button"
+                  (click)="solucionVF = false"
+                  [class.bg-[#e53935]]="solucionVF === false"
+                  [class.text-white]="solucionVF === false"
+                  [class.bg-[#ffffff]]="solucionVF !== false"
+                  [class.text-[#231f20]]="solucionVF !== false"
+                  class="px-3.5 py-1.5 rounded-lg border border-[#e6dac8] font-bold text-xs transition-all cursor-pointer">
+                  ✕ Falso ({{ puntajePregunta }} pts)
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (tipoSeleccionado === 'ORDENAR') {
+            <div class="bg-[#f5ede1] border border-[#e6dac8] rounded-xl p-3.5 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-[#a67c42] uppercase">Secuencia Correcta:</span>
+                <button
+                  type="button"
+                  (click)="agregarItemOrdenar()"
+                  class="text-xs font-bold text-[#cc5a36] hover:underline cursor-pointer">
+                  + Añadir paso
+                </button>
+              </div>
+              <div class="space-y-1.5">
+                @for (item of itemsOrdenar; track item.id; let i = $index) {
+                  <div class="flex items-center gap-2 bg-[#ffffff] p-2 rounded-lg border border-[#e6dac8]">
+                    <span class="w-5 h-5 rounded-full bg-[#a67c42] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                      {{ i + 1 }}
+                    </span>
+                    <input
+                      type="text"
+                      [(ngModel)]="item.texto"
+                      class="flex-1 text-xs bg-transparent border-none focus:outline-none text-[#231f20]"
+                      placeholder="Paso..."
+                    />
+                    <button
+                      type="button"
+                      (click)="moverItemOrdenar(i, 'UP')"
+                      [disabled]="i === 0"
+                      class="w-6 h-6 rounded border border-[#e6dac8] bg-[#f5ede1] hover:bg-[#ede3d5] disabled:opacity-30 text-xs font-bold flex items-center justify-center cursor-pointer">
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      (click)="moverItemOrdenar(i, 'DOWN')"
+                      [disabled]="i === itemsOrdenar.length - 1"
+                      class="w-6 h-6 rounded border border-[#e6dac8] bg-[#f5ede1] hover:bg-[#ede3d5] disabled:opacity-30 text-xs font-bold flex items-center justify-center cursor-pointer">
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      (click)="eliminarItemOrdenar(i)"
+                      class="text-xs text-[#9e948c] hover:text-[#e53935] p-1 cursor-pointer">
+                      ✕
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (tipoSeleccionado === 'EMPAREJAR') {
+            <div class="bg-[#f5ede1] border border-[#e6dac8] rounded-xl p-3.5 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-[#a67c42] uppercase">Parejas Concepto ➔ Definición:</span>
+                <button
+                  type="button"
+                  (click)="agregarPareja()"
+                  class="text-xs font-bold text-[#cc5a36] hover:underline cursor-pointer">
+                  + Añadir pareja
+                </button>
+              </div>
+              <div class="space-y-1.5">
+                @for (par of parejasEmparejar; track par.id; let i = $index) {
+                  <div class="grid grid-cols-11 gap-1.5 items-center bg-[#ffffff] p-2 rounded-lg border border-[#e6dac8]">
+                    <input
+                      type="text"
+                      [(ngModel)]="par.concepto"
+                      placeholder="Concepto..."
+                      class="col-span-5 text-xs font-bold bg-[#fcf9f4] border border-[#e6dac8] rounded p-1 text-[#231f20]"
+                    />
+                    <div class="col-span-1 text-center text-[#a67c42] font-bold text-xs">➔</div>
+                    <input
+                      type="text"
+                      [(ngModel)]="par.definicion"
+                      placeholder="Definición..."
+                      class="col-span-4 text-xs bg-[#fcf9f4] border border-[#e6dac8] rounded p-1 text-[#231f20]"
+                    />
+                    <button
+                      type="button"
+                      (click)="eliminarPareja(i)"
+                      class="col-span-1 text-right text-xs text-[#9e948c] hover:text-[#e53935] p-1 cursor-pointer">
+                      ✕
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="pt-2 flex justify-end">
+            <button
+              type="button"
+              (click)="agregarPregunta()"
+              class="btn-terracotta py-2 px-5 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+              <span>+</span>
+              <span>Añadir Pregunta</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- COLUMNA DERECHA: LISTA DE PREGUNTAS DEL CUESTIONARIO ACTUAL (5 COLS) -->
+        <div class="lg:col-span-5 card-parchment p-4 space-y-3 shadow-sm">
+          
+          <div class="flex items-center justify-between border-b border-[#f0e7db] pb-2.5">
+            <div>
+              <h3 class="text-sm font-extrabold text-[#231f20]">
+                Preguntas Configuradas ({{ preguntas().length }})
+              </h3>
+              <span class="text-[11px] font-semibold text-[#7a6e65]">
+                Puntaje Total: <strong class="text-[#cc5a36]">{{ puntajeAcumulado }} pts</strong>
+              </span>
+            </div>
+
+            <button
+              type="button"
+              (click)="mezclarPreguntas()"
+              [disabled]="preguntas().length < 2"
+              class="px-2.5 py-1.5 rounded-lg border border-[#a67c42] bg-[#f5efe6] hover:bg-[#ede3d5] text-[#a67c42] text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 shadow-2xs">
+              <span>🔀</span>
+              <span>Aleatorio</span>
+            </button>
+          </div>
+
+          @if (preguntas().length === 0) {
+            <div class="text-center py-8 text-xs text-[#7a6e65] bg-[#faf7f2] rounded-lg border border-dashed border-[#e6dac8]">
+              No hay preguntas aún. Utiliza el constructor izquierdo para agregar preguntas.
+            </div>
+          } @else {
+            <div class="space-y-2 max-h-[440px] overflow-y-auto pr-1">
+              @for (p of preguntas(); track i; let i = $index) {
+                <div class="bg-[#ffffff] border border-[#e6dac8] hover:border-[#cbbea9] rounded-lg p-2.5 shadow-2xs flex items-start justify-between gap-2">
+                  <div class="flex items-start gap-2 overflow-hidden">
+                    <span class="w-5 h-5 rounded-md bg-[#f5ede1] text-[#a67c42] border border-[#e6dac8] flex items-center justify-center text-[10px] font-extrabold shrink-0 mt-0.5">
+                      {{ i + 1 }}
+                    </span>
+                    <div class="space-y-0.5 truncate">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-[#f5efe6] text-[#a67c42] border border-[#e6dac8]">
+                          {{ getTipoNombre(p.tipo) }}
+                        </span>
+                        <span class="text-[10px] font-bold text-[#2e7d32]">
+                          {{ p.puntaje }} pts
+                        </span>
+                        @if (puntajeAcumulado > 0) {
+                          <span class="text-[9px] font-semibold text-[#7a6e65]">
+                            (~{{ ((p.puntaje / puntajeAcumulado) * 100).toFixed(0) }}%)
+                          </span>
+                        }
+                      </div>
+                      <p class="text-xs font-medium text-[#231f20] truncate">
+                        {{ p.enunciado }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      (click)="moverPregunta(i, 'UP')"
+                      [disabled]="i === 0"
+                      class="w-6 h-6 rounded border border-[#e6dac8] bg-[#fcf9f4] hover:bg-[#ede3d5] disabled:opacity-30 text-[10px] font-bold flex items-center justify-center cursor-pointer">
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      (click)="moverPregunta(i, 'DOWN')"
+                      [disabled]="i === preguntas().length - 1"
+                      class="w-6 h-6 rounded border border-[#e6dac8] bg-[#fcf9f4] hover:bg-[#ede3d5] disabled:opacity-30 text-[10px] font-bold flex items-center justify-center cursor-pointer">
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      (click)="eliminarPreguntaConfigurada(i)"
+                      class="text-[#9e948c] hover:text-[#e53935] p-1 text-xs cursor-pointer">
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="pt-3 border-t border-[#f0e7db]">
+            <button
+              type="button"
+              (click)="publicarCuestionario()"
+              [disabled]="isSubmitting() || preguntas().length === 0"
+              class="btn-terracotta w-full py-3 px-4 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+              @if (isSubmitting()) {
+                <span>{{ cuestionarioEditandoId() ? 'Guardando Nueva Versión en Backend...' : 'Publicando Cuestionario...' }}</span>
+              } @else {
+                <span>{{ cuestionarioEditandoId() ? 'Guardar Versión Inmutable (PUT en Backend) →' : 'Publicar Cuestionario en Backend (POST) →' }}</span>
+              }
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  }
+
+</div>
